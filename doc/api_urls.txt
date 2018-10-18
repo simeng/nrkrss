@@ -1,0 +1,9 @@
+NPUB27029118 = programnavn?
+114204 = ?
+
+https://radio.nrk.no/psapi/series/dagsnytt
+https://radio.nrk.no/psapi/series/dagsnytt/latestOrNextEpisode
+https://radio.nrk.no/psapi/programs/NPUB27029118/playlist
+https://psapi.nrk.no/playback/metadata/program/NPUB27029118
+https://radio.nrk.no/psapi/series/dagsnytt/seasons/114204/Episodes
+
