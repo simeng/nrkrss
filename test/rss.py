@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import json, re
 from datetime import datetime
-import pytz
 import sys
 import m3u8
+from pydub import AudioSegment
 
 def fetchSeasons(name):
     url = 'https://radio.nrk.no/psapi/series/%s' % ( name )
