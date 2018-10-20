@@ -48,19 +48,51 @@ def fetchEpisodes(id):
                     publicationDate = datetime.fromtimestamp(timestamp)
                     print("publicationDate: {}".format(publicationDate))
                     try:
-                        for asset in e['mediaAssetsOnDemand']:
-                            print("media assets: {}".format(asset['hlsUrl']))
-                            master = m3u8.load("master.m3u8")
-                            for playlist in master.playlists:
-                                print(playlist.uri)
-                                streamdata = m3u8.load("index_0_a.m3u8")
-                                for segment in streamdata.segments:
-                                    print(segment.uri)
-                            sys.exit()
+                        assets = getBestQualityAssets(e['mediaAssetsOnDemand'])
 
                     except TypeError as e:
                         print("No media assets: {}".format(e))
 
+                    print(assets)
+
+def getBestQualityAssets(assets):
+    segmentUrls = []
+
+    for asset in assets:
+        playlistUrl = asset['hlsUrl']
+        playlistUrl = "master.m3u8" #temp
+        print("master playlist: {}".format(playlistUrl))
+
+        masterPlaylist = m3u8.load(playlistUrl)
+
+        # Master playlist contains playlists of different quality versions of
+        # the same stream, just get the best one
+        byBestQuality = masterPlaylist.playlists
+        sorted(byBestQuality, key=lambda x: x.stream_info.bandwidth)
+        bestQuality = byBestQuality.pop()
+
+        assetPlaylistUrl = bestQuality.uri
+        assetPlaylistUrl = "index_0_a.m3u8"
+        print("asset playlist: {}".format(assetPlaylistUrl))
+
+        segmentPlaylist = m3u8.load(assetPlaylistUrl)
+        for segment in segmentPlaylist.segments:
+            segmentUrls.append(segment.uri)
+
+    return segmentUrls
+
+def getSegmentsAsMp3(segments):
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        for s in segments:
+            with urllib.request.urlopen(s) as response:
+                tmp_file.write(response.read())
+
+        sourceAudio = AudioSegment.from_aac(tmp_file)
+
+        with tempfile.NamedTemporaryFile(delete=False) as mp3_file:
+            sourceAudio.export(mp3_file, format="mp3")
+
+            return mp3_file.read()
 
 
 index = fetchSeasons('dagsnytt')
