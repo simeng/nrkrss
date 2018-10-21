@@ -12,4 +12,5 @@ The plan is:
 * python3
 * python3-pydub # convert to mp3
 * python3-m3u8 # read m3u8 playlist format
-
+* python3-pyrss2gen # make rss feed
+* python3-bottle # make web app
