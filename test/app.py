@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rss
 import os
-from bottle import route, run, template
+from bottle import route, run, template, response
 
 @route('/')
 def index():
@@ -19,6 +19,7 @@ def recode(name, id):
     season = seasons.pop()
     episode = [e for e in season['episodes'] if e['id'] == id][0]
 
+    response.content_type = 'audio/mpeg'
     return str(rss.getAssetsAsMp3(rss.getBestQualityAssets(episode['assets'])))
 
 

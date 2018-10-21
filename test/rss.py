@@ -5,8 +5,7 @@ import m3u8
 import tempfile
 import urllib
 from urllib.parse import urljoin
-from os import getenv
-from os import path
+from os import getenv, path, mkdir
 from datetime import datetime
 from pydub import AudioSegment
 from PyRSS2Gen import RSS2, RSSItem, Guid
@@ -105,17 +104,32 @@ def getBestQualityAssets(assets):
     return segmentUrls
 
 def getAssetsAsMp3(assets):
-    with open("/tmp/testfile", "wb+") as tmp_file:
-        for a in assets:
+    tempdir = "/tmp/test"
+    partFiles = []
+    try:
+        mkdir(tempdir)
+    except FileExistsError as e:
+        pass
+
+    sourceAudio = AudioSegment.empty()
+
+    for a in assets:
+        partFile = "{}/{}".format(tempdir, path.basename(a))
+
+        with open(partFile, "wb+") as tmp_file:
             with urllib.request.urlopen(a) as response:
                 tmp_file.write(response.read())
-        
-    sourceAudio = AudioSegment.from_file(open("/tmp/testfile", "rb"), "aac")
 
-    with tempfile.NamedTemporaryFile(delete=False) as mp3_file:
-        sourceAudio.export(mp3_file, format="mp3")
+        sourceAudio += AudioSegment.from_file(partFile)
 
-        return mp3_file.read()
+    outfile = "{}/output.mp3".format(tempdir)
+
+    sourceAudio.export(outfile, format="mp3")
+
+    data = ""
+    with open(outfile, "rb") as o:
+        data = o.read()
+    return data
 
 def generateFeed(seasons):
     season = seasons.pop()
