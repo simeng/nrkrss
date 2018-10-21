@@ -4,8 +4,11 @@ from datetime import datetime
 import sys
 import m3u8
 from pydub import AudioSegment
+from PyRSS2Gen import RSS2, RSSItem, Guid
 
 def fetchSeasons(name):
+    seasons = []
+
     url = 'https://radio.nrk.no/psapi/series/%s' % ( name )
     url = name # temp
     with open(url) as f:
@@ -14,17 +17,26 @@ def fetchSeasons(name):
         playlist = json.loads(p)
 
         print("{}, {}".format(playlist['title'], playlist['description']))
+        season = {
+            'title': playlist['title'],
+            'description': playlist['description'],
+            'episodes': []
+        }
 
         for s in playlist['seasons']:
             if s['hasOnDemandRightsEpisodes']:
                 print("%s: %s (%s)".format(s['id'], s['name'], url))
 
                 episodes = fetchEpisodes(s['id'])
-                print(episodes)
+                season['episodes'] = episodes
+                seasons.append(season)
                 break
 
+    return seasons
+        
 
 def fetchEpisodes(id):
+    feedEpisodes = []
     url = 'https://radio.nrk.no/psapi/series/dagsnytt/seasons/{}/Episodes'.format(id)
     url = 'Episodes' # temp
     with open(url) as f:
@@ -50,10 +62,18 @@ def fetchEpisodes(id):
                     try:
                         assets = getBestQualityAssets(e['mediaAssetsOnDemand'])
 
+                        episode = {
+                            'id': e['id'],
+                            'title': "{}: {}".format(e['seriesTitle'], e['episodeTitle']),
+                            'description': "{}{}".format(e['seasonId'], e['episodeNumber']),
+                            'date': publicationDate,
+                            'assets': assets
+                        }
+                        feedEpisodes.append(episode)
                     except TypeError as e:
                         print("No media assets: {}".format(e))
 
-                    print(assets)
+    return feedEpisodes
 
 def getBestQualityAssets(assets):
     segmentUrls = []
@@ -94,5 +114,32 @@ def getSegmentsAsMp3(segments):
 
             return mp3_file.read()
 
+def generateFeed(seasons):
+    season = seasons.pop()
+    items = []
 
-index = fetchSeasons('dagsnytt')
+    for episode in season['episodes']:
+        items.append(RSSItem(
+            title = episode['title'],
+            link = "https://radio.h4x.no/recode/{}".format(episode['id']),
+            description = episode['description'],
+            guid = Guid("https://radio.h4x.no/rss/", episode['id']),
+            pubDate = episode['date']
+        ))
+
+    rss = RSS2(
+        title = season['title'],
+        link = "https://radio.h4x.no",
+        description = season['description'],
+
+        lastBuildDate = datetime.utcnow(),
+
+        items = items
+    )
+
+    rss.write_xml(sys.stdout)
+
+
+seasons = fetchSeasons('dagsnytt')
+generateFeed(seasons)
+
